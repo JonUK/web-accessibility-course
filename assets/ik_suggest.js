@@ -2,6 +2,7 @@
  
 var pluginName = "ik_suggest",
 	defaults = {
+        'instructions': "As you start typing the application might suggest similar search terms. Use up and down arrow keys to select a suggested search string.",
 		'minLength': 2,
 		'maxResults': 10,
 		'source': []
@@ -28,19 +29,32 @@ var pluginName = "ik_suggest",
 	
 	/** Initializes plugin. */
 	Plugin.prototype.init = function () {
-		
-		var $elem, plugin;
-		
-		plugin = this;
-		
-		$elem = this.element
-			.attr({
-				'autocomplete': 'off'
-			})
-			.wrap('<span class="ik_suggest"></span>') 
-			.on('keydown', {'plugin': plugin}, plugin.onKeyDown) // add keydown event
-			.on('keyup', {'plugin': plugin}, plugin.onKeyUp) // add keyup event
-			.on('focusout', {'plugin': plugin}, plugin.onFocusOut);  // add focusout event
+
+        var $elem, plugin, instructionsId;
+
+        plugin = this;
+        instructionsId = this.element.attr('id') + 'Instructions';
+
+        $elem = this.element
+            .attr({
+                'autocomplete': 'off',
+                'aria-describedby': instructionsId
+            })
+            .wrap('<span class="ik_suggest"></span>')
+            .on('keydown', {'plugin': plugin}, plugin.onKeyDown) // add keydown event
+            .on('keyup', {'plugin': plugin}, plugin.onKeyUp) // add keyup event
+            .on('focusout', {'plugin': plugin}, plugin.onFocusOut);  // add focusout event
+
+		// https://learn.canvas.net/courses/2156/pages/suggestion-boxes?module_item_id=221276
+        plugin.notify = $('<div/>') // add hidden live region to be used by screen readers
+            .addClass('ik_readersonly')
+            .attr({
+                'id': instructionsId,
+                'role': 'region',
+                'aria-live': 'polite'
+            }).
+            text(defaults.instructions);
+
 		
 		this.list = $('<ul/>').addClass('suggestions');
 		
@@ -175,6 +189,10 @@ var pluginName = "ik_suggest",
 				}
 			}
 		}
+
+        if (r.length) { // add instructions to hidden live area
+            this.notify.text('Suggestions are available for this field. Use up and down arrows to select a suggestion and enter key to use it.');
+        }
 
 		return r;
 		
