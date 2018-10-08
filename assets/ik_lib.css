@@ -109,7 +109,7 @@ button[disabled]:focus {
   background-color: #f76;
   transform-origin: left;
   transform: scaleX(0);
-  transition: 0.2s linear transform; /* Make the progress bar movement smoother on a large viewport */
+  transition: 0.1s linear transform; /* Make the progress bar movement smoother on a large viewport */
 }
 .ik_tooltip {
   position: absolute;

@@ -2,7 +2,7 @@
 	
 	var pluginName = 'ik_progressbar',
 		defaults = { // values can be overitten by passing configuration options to plugin constructor 
-            'instructions': 'Press spacebar, or Enter to get progress',
+            'instructions': 'Press space bar, or Enter to get progress',
 			'max': 100
 		};
 	
@@ -103,14 +103,14 @@
 	Plugin.prototype.setValue = function(n) {
 		
 		var $el, val, isComplete = false;
-		
+
 		$el = $(this.element);
-				
+
 		if (n >= this.options.max) {
 			val = this.options.max;
-			$el.attr({
-					'tabindex': -1
-				});
+
+            $el.attr('tabindex', -1);
+
 			this.notification.text('Loading complete');
 		} else {
 			val = n;
