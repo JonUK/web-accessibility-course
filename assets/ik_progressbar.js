@@ -2,6 +2,7 @@
 	
 	var pluginName = 'ik_progressbar',
 		defaults = { // values can be overitten by passing configuration options to plugin constructor 
+            'instructions': 'Press spacebar, or Enter to get progress',
 			'max': 100
 		};
 	
@@ -27,26 +28,45 @@
 	Plugin.prototype.init = function () { // initialization function
 		
 		var id = 'pb' + $('.ik_progressbar').length;
+		var instructionsId = id + '_instructions';
 				
 		this.element
 			.attr({
 				'id': id,
+				'tabindex': -1,
+				'role': 'progressbar',
+				'aria-valuenow': 0,
+				'aria-valuemin': 0,
+				'aria-valuemax': this.options.max,
+				'aria-describedby': instructionsId
 			})
 			.addClass('ik_progressbar')
-      ;
-		
+            .on('keydown.ik', {'plugin': this}, this.onKeyDown);
+
 		this.fill = $('<div/>')
 			.addClass('ik_fill');
 			
 		this.notification = $('<div/>') // add div element to be used to notify about the status of download
+			.attr({
+				'aria-live': 'assertive',
+				'aria-atomic': 'additions'
+			})
 			.addClass('ik_readersonly')
 			.appendTo(this.element);
+
+        $('<div/>') // add div element to be used with aria-described attribute of the progressbar
+            .text(this.options.instructions) // get instruction text from plugin options
+            .addClass('ik_readersonly') // hide element from visual display
+            .attr({
+                'id': instructionsId,
+                'aria-hidden': 'true'  // hide element from screen readers to prevent it from being read twice
+            })
+            .appendTo(this.element);
 
 		$('<div/>')
 			.addClass('ik_track')
 			.append(this.fill)
 			.appendTo(this.element);
-		
 	};
 	
 	/** 
@@ -56,9 +76,7 @@
 	 */
 	Plugin.prototype.getValue = function() {
 		
-		var value;
-		
-		value = Number( this.element.data('value') ); // inaccessible
+        var value = Number( this.element.attr('aria-valuenow') ); // accessible
 		
 		return parseInt( value );
 		
@@ -99,13 +117,9 @@
 		}
 		
 		this.element
-			.data({ // inaccessible
-				'value': parseInt(val) 
-			}) 
-      ;
-		
+			.attr('aria-valuenow', parseInt(val));
+
 		this.updateDisplay();
-		
 	};
 	
 	/** Updates visual display. */
@@ -132,6 +146,28 @@
 		this.notify();
 	
 	};
+
+    /**
+     * Handles keydown event on progressbar element.
+     *
+     * @param {Object} event - Keyboard event.
+     * @param {object} event.data - Event data.
+     * @param {object} event.data.plugin - Reference to plugin.
+     */
+    Plugin.prototype.onKeyDown = function(event) {
+
+        switch(event.keyCode) {
+
+            case ik_utils.keys.space:
+            case ik_utils.keys.enter:
+                event.preventDefault();
+                event.stopPropagation();
+                event.data.plugin.notify();
+                break;
+        }
+
+
+    };
 	
 	$.fn[pluginName] = function ( options ) {
 		
