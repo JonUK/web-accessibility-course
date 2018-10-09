@@ -2,6 +2,7 @@
 	
 	var pluginName = 'ik_slider',
 		defaults = {
+            'instructions': 'Use the right and left arrow keys to increase or decrease the slider value.',
 			'minValue': 0,
 			'maxValue': 100,
 			'nowValue': 0,
@@ -32,10 +33,11 @@
 	/** Initializes plugin. */
 	Plugin.prototype.init = function () {
 		
-		var id, plugin;
+		var id, plugin, instructionsId;
 		
 		plugin = this;
 		id = 'slider' + $('.ik_slider').length; // generate unique id
+        instructionsId = id + '_instructions';
 		
 		plugin.textfield = plugin.element;
 		
@@ -47,7 +49,8 @@
 		
 			plugin.textfield
 				.attr({
-					'readonly': ''
+					'readonly': '',
+                    'tabindex': -1 // The slider will be focusable
 				})
 				.addClass('ik_value')
 				.wrap('<div></div>'); // wrap initial element in a div
@@ -61,13 +64,27 @@
 			
 			plugin.knob = $('<div/>')
 				.attr({
-					'id': id
+					'id': id,
+					'tabindex': 0, // Make the knob focusable
+					'role': 'slider',
+                    'aria-valuemin': plugin.options.minValue,
+                    'aria-valuemax': plugin.options.maxValue,
+                    'aria-valuenow': plugin.options.minValue,
+                    'aria-describedby': instructionsId
 				})
 				.addClass('ik_knob')
+                .on('keydown', {'plugin': plugin}, plugin.onKeyDown)
 				.on('mousedown', {'plugin': plugin}, plugin.onMouseDown)
 				.on('mousemove', {'plugin': plugin}, plugin.onMouseMove)
 				.on('mouseup', {'plugin': plugin}, plugin.onMouseUp)
 				.on('mouseleave', function(){ setTimeout(plugin.onMouseUp, 100, { 'data': {'plugin': plugin} }) });
+
+            $('<div/>') // add instructions for screen reader users
+                .attr('id', instructionsId)
+                .text(this.options.instructions)
+                .addClass('ik_readersonly')
+                .appendTo(this.element);
+
 				
 			$('<div/>') // add slider track
 				.addClass('ik_track')
@@ -75,9 +92,7 @@
 				.prependTo(this.element);
 			
 			this.setValue(plugin.options.minValue); // update current value
-		
 		}
-					
 	};
 	
 	/** 
@@ -89,6 +104,7 @@
 		
 		this.textfield.val(n);
 		this.options.nowValue = n;
+        this.knob.attr('aria-valuenow', n);
 		this.updateDisplay(n); // update display
 	};
 	
@@ -112,10 +128,7 @@
 			.css({
 				'left': percent * 100 + '%'
 			});
-		
 	};
-	
-
 	
 	/** 
 	 * Mousedown event handler. 
@@ -153,7 +166,7 @@
 		if(event.data.plugin.dragging) { 
 			
 			min = plugin.options.minValue;
-			max = plugin.options.maxValue
+			max = plugin.options.maxValue;
 			step = plugin.options.step;
 			
 			percent = (event.pageX - $parent.offset().left) / $parent.width();
@@ -186,6 +199,47 @@
 		plugin.setValue(plugin.options.nowValue);
 		
 	};
+
+    /**
+     * Keyboard event handler.
+     *
+     * @param {object} event - Keyboard event.
+     * @param {object} event.data - Event data.
+     * @param {object} event.data.plugin - Reference to plugin.
+     */
+    Plugin.prototype.onKeyDown = function (event) {
+
+        var $elem, plugin, value;
+
+        $elem = $(this);
+        plugin = event.data.plugin;
+
+        switch (event.keyCode) {
+
+            case ik_utils.keys.right:
+			case ik_utils.keys.up:
+                value = parseInt($elem.attr('aria-valuenow')) + plugin.options.step;
+                value = value < plugin.options.maxValue ? value : plugin.options.maxValue;
+                plugin.setValue(value);
+                break;
+
+            case ik_utils.keys.end:
+                plugin.setValue(plugin.options.maxValue);
+                break;
+
+            case ik_utils.keys.left:
+            case ik_utils.keys.down:
+                value = parseInt($elem.attr('aria-valuenow')) - plugin.options.step;
+                value = value > plugin.options.minValue ? value : plugin.options.minValue;
+                plugin.setValue(value);
+                break;
+
+            case ik_utils.keys.home:
+                plugin.setValue(plugin.options.minValue);
+                break;
+
+        }
+    };
 	
 	$.fn[pluginName] = function ( options ) {
 		
