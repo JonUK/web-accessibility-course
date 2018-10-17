@@ -50,7 +50,7 @@
 			plugin.textfield
 				.attr({
 					'readonly': '',
-                    'tabindex': -1 // The slider will be focusable
+                    'tabindex': -1 // Remove keyboard access to the original input field
 				})
 				.addClass('ik_value')
 				.wrap('<div></div>'); // wrap initial element in a div
