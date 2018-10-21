@@ -1,7 +1,10 @@
 ;(function ( $, window, document, undefined ) {
  
 var pluginName = "ik_sortable",
-	defaults = {};
+    modifierKey = navigator.platform.indexOf('Mac') > -1 ? 'Command' : 'Control',
+	defaults = {
+        'instructions': 'Use arrow keys to select a list item,  ' + modifierKey + ' + arrow keys to move it to a new position.'
+	};
 	 
 	function Plugin( element, options ) {
 		
@@ -15,22 +18,40 @@ var pluginName = "ik_sortable",
 	 
 	Plugin.prototype.init = function () {
 		
-		var $elem, plugin, id, total;
+		var $elem, plugin, id, instructionsId, total;
 		
 		plugin = this;
 		id = 'sortable_' + $('.ik_sortable').length;
+        instructionsId = id + '_instructions';
+
 		$elem = this.element.attr({
-			'id': id
+			'id': id,
+            'role': 'list',
+            'tabindex': 0,
+            'aria-labelledby': instructionsId
 		})
 		.wrap('<div class="ik_sortable"></div>').before(plugin.temp);
-			
+
+        $('<div/>') // Add div element to be used with aria-describedby attribute of the menu
+            .text(plugin.options.instructions) // get instruction text from plugin options
+            .addClass('ik_readersonly') // hide element from visual display
+            .attr({
+                'id': instructionsId,
+                'aria-hidden': 'true'  // hide element from screen readers to prevent it from being read twice
+            })
+            .appendTo($elem);
+
+
 		total = $elem.children('li').length;
 			
 		plugin.items = $elem.children('li').each( function(i, el) {
 			
 			$(el).attr({
 				'draggable': true,
-				'id': id + '_' + i
+				'id': id + '_' + i,
+                'role': 'listitem',
+                'aria-label': $(el).text() + ' ' + (i + 1) + ' of ' + total + ' movable',
+                'tabindex': i > 0 ? -1 : 0
 			});
 		})
 		.on('dragstart', {'plugin': plugin}, plugin.onDragStart)
@@ -38,7 +59,8 @@ var pluginName = "ik_sortable",
 		.on('dragend', {'plugin': plugin}, plugin.onDragEnd)
 		.on('dragenter', {'plugin': plugin}, plugin.onDragEnter)
 		.on('dragover', {'plugin': plugin}, plugin.onDragOver)
-		.on('dragleave', {'plugin': plugin}, plugin.onDragLeave);
+		.on('dragleave', {'plugin': plugin}, plugin.onDragLeave)
+		.on('keydown', {'plugin': plugin}, plugin.onKeyDown);
 		
 		
 	};
@@ -126,10 +148,59 @@ var pluginName = "ik_sortable",
 		plugin.items = plugin.element.children('li');
 		
 		plugin.items.each( function(i, el) {
-			var $me = $(el);
-		});
+            var $me = $(el);
+            $me.attr({
+                'aria-label': $me.text() + ' ' + (i + 1) + ' of ' + plugin.items.length + ' movable'
+            });
+		})
 		
-	}
+	};
+
+    Plugin.prototype.onKeyDown = function (event) {
+
+        var plugin, $me, currIndex, nextIndex;
+
+        plugin = event.data.plugin;
+        $me = $(event.currentTarget);
+        currentIndex = plugin.items.index(event.currentTarget);
+
+        switch (event.keyCode) {
+
+            case ik_utils.keys.down:
+
+                plugin.items.attr({'tabindex': -1});
+
+                if(currentIndex < plugin.items.length - 1) {
+                    if(event.ctrlKey || event.metaKey) { // move item down
+                        $me.insertAfter( $me.next() );
+                        $me.attr({'tabindex': 0}).focus();
+                        plugin.resetNumbering(plugin);
+                    } else { // move focus to the next item
+                        $me.next().attr({'tabindex': 0}).focus();
+                    }
+                }
+
+                break;
+
+            case ik_utils.keys.up:
+
+                plugin.items.attr({'tabindex': -1});
+
+                if(currentIndex > 0) {
+                    if(event.ctrlKey || event.metaKey) { // move item up
+                        $me.insertBefore( $me.prev() );
+                        $me.attr({'tabindex': 0}).focus();
+                        plugin.resetNumbering(plugin);
+                    } else { // move focus to the previous item
+                        $me.prev().attr({'tabindex': 0}).focus();
+                    }
+                }
+
+                break;
+
+        }
+
+    };
 
 	$.fn[pluginName] = function ( options ) {
 		
